@@ -12,6 +12,7 @@ define('yandex-map-markers', [
 
     var self;
     var router;
+    var isParticipate = false;
     var map_options = {
         default_options: {
             center: [55.751574, 37.573856],
@@ -509,6 +510,7 @@ define('yandex-map-markers', [
                 if($('#js__suggest-view').length > 0){
                     ymaps.ready(function() {
                         self.init_suggestView();
+
                         $('body').on('click', '.js__search-btn', self.sendAddressToMapPage);
                     });
                 }
@@ -574,19 +576,6 @@ define('yandex-map-markers', [
                 offset: [14, 1],
                 width: 378
             });
-
-            /*self.suggestView.state.events.add('change', function () {
-                var $input = $('#js__suggest-view');
-                var activeIndex = self.suggestView.state.get('activeIndex');
-
-                if (typeof activeIndex === 'number') {
-                    var activeItem = self.suggestView.state.get('items')[activeIndex];
-                    if (activeItem && activeItem.value != $input.value) {
-                        $input.val(activeItem.value);
-                    }
-                }
-            });*/
-
         },
 
         //Инициализация шаблона для балунов
@@ -616,6 +605,7 @@ define('yandex-map-markers', [
             $('body').on('click', '.js__show-object-balloon', _.bind(self.showObjectBalloon, self));
             $('body').on('click', '.js__map-modal-close', _.bind(__hide_modal));
             $('body').on('click', '.js__search-btn', self.findAddress);
+            $('body').on('click', '.js__map-filter-participate', self.mapFilterParticipate);
         },
 
         //Инициализация ObjectManager
@@ -645,7 +635,19 @@ define('yandex-map-markers', [
                 url: '/json/data.json'
             }).done(function(data) {
                 self.collectionMarkers = data;
+
                 self.objectManager.add(self.collectionMarkers);
+
+                self.objectManager.objects.each(function(object) {
+                    if (object.properties.ifPromoParticipate) {
+                        self.objectManager.objects.setObjectOptions(object.id, {
+                            iconImageHref: '../../images/promo-pin.png',
+                            iconImageSize: [44, 52],
+                            iconImageOffset: [-22, -52]
+                        });
+                    }
+                });
+
                 self.load_metro_data();
             });
         },
@@ -683,6 +685,7 @@ define('yandex-map-markers', [
 
             objects.each(function(object) {
                 var item = {
+                    ifPromoParticipate: object.properties.get('ifPromoParticipate'),
                     id: object.properties.get('id'),
                     name: object.properties.get('name'),
                     region: object.properties.get('region'),
@@ -690,6 +693,7 @@ define('yandex-map-markers', [
                     address: object.properties.get('address'),
                     description: object.properties.get('description'),
                     phone: object.properties.get('phone'),
+                    url: object.properties.get('url'),
                     i: i
                 };
 
@@ -770,6 +774,7 @@ define('yandex-map-markers', [
         //Показать список городов в модальном окне
         showCities: function() {
             __show_modal('cities');
+
             if ($('.js__map-modal-cities-main > *').length <= 0){
                 self.renderMainCities();
             }
@@ -817,6 +822,16 @@ define('yandex-map-markers', [
             __hide_modal();
 
             var item = self.objectManager.objects.getById(id);
+
+            if(!item) {
+                var city;
+
+                _.each(self.collectionMarkers.features, function(object) {
+                    if (object.id === id) {
+                        item = object;
+                    }
+                });
+            }
 
             if(!item) {
                 return false;
@@ -915,6 +930,39 @@ define('yandex-map-markers', [
             self.map.setBounds(bounds, {
                 checkZoomRange: true
             });
+        },
+
+        mapFilterParticipate: function(event) {
+            var $el = $(event.currentTarget);
+
+            if ($el.is(':checked')) {
+                self.objectManager.setFilter('properties.ifPromoParticipate === true');
+
+                isParticipate = true;
+            } else {
+                self.objectManager.setFilter(function (object) {
+                    return true;
+                });
+
+                isParticipate = false;
+            }
+
+            if (isParticipate) {
+                var removeIds = [];
+
+                self.objectManager.objects.each(function(object) {
+                    if (!object.properties.ifPromoParticipate) {
+                        removeIds.push(object.id);
+                    }
+                });
+
+                self.objectManager.objects.remove(removeIds);
+            } else {
+                self.objectManager.removeAll();
+                self.objectManager.add(self.collectionMarkers);
+            }
+
+            self.getVisibleMarkers();
         },
 
         //Найти адрес по форме поиска
