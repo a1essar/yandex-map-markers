@@ -227,7 +227,7 @@ define('yandex-map-markers', [
         var result = [];
 
         _.find(self.collectionMarkers.features, function(object) {
-            if(object.properties.city === name) {
+            if(object.properties.city.indexOf(name) !== -1) {
                 result = object;
                 return true;
             }
@@ -296,7 +296,7 @@ define('yandex-map-markers', [
         var result = [];
 
         _.each(self.collectionMarkers.features, function(object) {
-            if(object.properties.city !== 'г. Москва' && object.properties.city !== 'г. Санкт-Петербург') {
+            if(object.properties.city.indexOf('Москва') === -1 && object.properties.city.indexOf('Санкт-Петербург') === -1) {
                 result.push(object);
             }
         });
@@ -649,7 +649,7 @@ define('yandex-map-markers', [
                 self.load_metro_data();
             });
         },
-        
+
         //Подгрузка данных о метро
         load_metro_data: function() {
             $.ajax({
@@ -824,7 +824,7 @@ define('yandex-map-markers', [
 
             var address_full;
 
-            if(item.properties.city.search('Москва') >= 0) {
+            if(item.properties.city.indexOf('Москва') !== -1) {
                 address_full = 'Россия, ' + item.properties.city;
             } else {
                 address_full = 'Россия, ' + item.properties.region + ', ' + item.properties.city;
@@ -960,12 +960,12 @@ define('yandex-map-markers', [
                 contentMainCities = '',
                 mainCities = [];
 
-            var cityMoscow = __findCityByName('г. Москва');
+            var cityMoscow = __findCityByName('Москва');
             if(cityMoscow) {
                 mainCities.push(cityMoscow);
             }
 
-            var cityPeterburg = __findCityByName('г. Санкт-Петербург');
+            var cityPeterburg = __findCityByName('Санкт-Петербург');
             if(cityPeterburg) {
                 mainCities.push(cityPeterburg);
             }
@@ -1000,7 +1000,7 @@ define('yandex-map-markers', [
         //Отрисовать округа
         renderCounties: function() {
             var templateCountyItem = _.template($('#js__county-item-template').html()),
-                contentCounties = ''
+                contentCounties = '';
 
             var counties = __getCounties();
 
