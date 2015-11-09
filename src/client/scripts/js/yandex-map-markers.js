@@ -737,8 +737,6 @@ define('yandex-map-markers', [
                 duration: '800',
                 offsetTop : '250'
             });
-
-            return false;
         },
 
         //Геолокация
